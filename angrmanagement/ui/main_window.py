@@ -47,6 +47,7 @@ from .dialogs.load_docker_prompt import LoadDockerPrompt, LoadDockerPromptError
 from .dialogs.new_state import NewState
 from .dialogs.about import LoadAboutDialog
 from .dialogs.preferences import Preferences
+from .dialogs.consent import ConsentForm
 from .toolbars import FileToolbar, SimgrToolbar
 
 if TYPE_CHECKING:
@@ -112,6 +113,11 @@ class MainWindow(QMainWindow):
             self.showMaximized()
             self.windowHandle().screenChanged.connect(self.on_screen_changed)
             self.show()
+
+            # Show modal consent form before allowing the user to interact with angr management
+            consent_form = ConsentForm(self)
+            consent_form.open()
+
 
         self.status = "Ready."
 
