@@ -1,4 +1,4 @@
-from .manager import ExperimentManager
+from .experiment import RandomizedExperiment
 
 # Global experiment manager instance
-Experiment_manager = ExperimentManager()
+Experiment_manager = RandomizedExperiment()

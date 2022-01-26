@@ -10,7 +10,7 @@ class FileMenu(Menu):
         super(FileMenu, self).__init__("&File", parent=main_window)
 
         self.entries.extend([
-            MenuEntry('L&oad a new binary...', main_window.open_file_button, shortcut=QKeySequence(Qt.CTRL + Qt.Key_O)),
+            MenuEntry('L&oad next binary...', main_window.load_next_experiment_challenge, shortcut=QKeySequence(Qt.CTRL + Qt.Key_O)),
             MenuEntry('Loa&d a new docker target...', main_window.open_docker_button, shortcut=QKeySequence(Qt.SHIFT + (Qt.CTRL + Qt.Key_O))),
             MenuSeparator(),
             MenuEntry('&Load angr database...', main_window.load_database, shortcut=QKeySequence(Qt.CTRL + Qt.Key_L)),

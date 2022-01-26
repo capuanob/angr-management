@@ -13,8 +13,8 @@ class FileToolbar(Toolbar):
 
         self.actions = [
             ToolbarAction(QIcon(os.path.join(IMG_LOCATION, 'toolbar-file-open.ico')),
-                          "Open File", "Open a new file for analysis",
-                          main_window.open_file_button,
+                          "Load Next Challenge", "Automatically load the next challenge",
+                          main_window.load_next_experiment_challenge,
                           ),
             ToolbarAction(QIcon(os.path.join(IMG_LOCATION, 'toolbar-docker-open.png')),
                           "Open Docker Target", "Open a file located within a docker image for analysis",

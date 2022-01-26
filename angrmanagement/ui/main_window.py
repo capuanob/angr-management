@@ -12,6 +12,8 @@ from PySide2.QtCore import Qt, QSize, QEvent, QTimer, QUrl
 
 import angr
 import angr.flirt
+from ..experiment import Experiment_manager
+
 try:
     from angr.angrdb import AngrDB
 except ImportError:
@@ -466,6 +468,11 @@ class MainWindow(QMainWindow):
 
     def reload(self):
         self.workspace.reload()
+
+    def load_next_experiment_challenge(self):
+        next_chall_path = Experiment_manager.next_chall
+        if next_chall_path:
+            self.load_file(next_chall_path)
 
     def open_file_button(self):
         file_path = self._open_mainfile_dialog()

@@ -1,20 +1,21 @@
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import Qt
+
 from angrmanagement.experiment import Experiment_manager
 
-import random
 
 class ExperimentIdentifier(QtWidgets.QDialog):
     """
     Used to generate a digest presented to the user that encodes the order of studies, challenges, and group number
     Used to sync with Angr Cloud
     """
+
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
         self.setWindowTitle("Sync with angr cloud")
         self.setModal(True)
 
-        self._digest_text_field = QtWidgets.QLineEdit(Experiment_manager.experiment_digest)
+        self._digest_text_field = QtWidgets.QLineEdit(Experiment_manager.digest)
         self._copy_btn = QtWidgets.QPushButton("Copy")
         self._done_btn = QtWidgets.QPushButton("Done")
         self._layout_manager = QtWidgets.QVBoxLayout(self)
