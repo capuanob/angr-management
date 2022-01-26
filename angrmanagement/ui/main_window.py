@@ -45,9 +45,9 @@ from .workspace import Workspace
 from .dialogs.load_plugins import LoadPlugins
 from .dialogs.load_docker_prompt import LoadDockerPrompt, LoadDockerPromptError
 from .dialogs.new_state import NewState
+from .dialogs.experiment_identifier import ExperimentIdentifier
 from .dialogs.about import LoadAboutDialog
 from .dialogs.preferences import Preferences
-from .dialogs.consent import ConsentForm
 from .toolbars import FileToolbar, SimgrToolbar
 
 if TYPE_CHECKING:
@@ -115,9 +115,8 @@ class MainWindow(QMainWindow):
             self.show()
 
             # Show modal consent form before allowing the user to interact with angr management
-            consent_form = ConsentForm(self)
-            consent_form.open()
-
+            experiment_identifier = ExperimentIdentifier(self)
+            experiment_identifier.open()
 
         self.status = "Ready."
 

@@ -12,7 +12,6 @@ from .views import (FunctionsView, DisassemblyView, SymexecView, StatesView, Str
                     InteractionView, PatchesView, DependencyView, ProximityView, TypesView, HexView, LogView)
 from .view_manager import ViewManager
 from .menus.disasm_insn_context_menu import DisasmInsnContextMenu
-from .dialogs.consent import ConsentForm
 
 from ..plugins import PluginManager
 
