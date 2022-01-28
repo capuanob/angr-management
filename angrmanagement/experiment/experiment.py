@@ -155,6 +155,11 @@ class RandomizedExperiment(QtCore.QObject):
             self._generate_digest()
         return self._experiment_digest
 
+    @digest.setter
+    def digest(self, new_digest: str):
+        if self.validate_digest(new_digest):
+            self.digest = new_digest
+
     @property
     def next_chall(self) -> Optional[str]:
         """
