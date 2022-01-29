@@ -116,10 +116,7 @@ class MainWindow(QMainWindow):
             self.windowHandle().screenChanged.connect(self.on_screen_changed)
             self.show()
 
-            # Show modal consent form before allowing the user to interact with angr management
-            experiment_identifier = ExperimentIdentifier(self)
-            experiment_identifier.open()
-
+            self.workspace.show_experiment_digest_view()
         self.status = "Ready."
 
     def sizeHint(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use

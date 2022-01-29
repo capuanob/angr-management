@@ -4,6 +4,7 @@ import traceback
 
 from angr.knowledge_plugins.functions.function import Function
 from angr import StateHierarchy
+from .dialogs.experiment_identifier import ExperimentIdentifier
 
 from ..logic.debugger import DebuggerWatcher
 from ..config import Conf
@@ -386,6 +387,11 @@ class Workspace:
         else:
             console.print_text(msg)
             console.print_text('\n')
+
+    def show_experiment_digest_view(self):
+        # Show modal consent form before allowing the user to interact with angr management
+        experiment_identifier = ExperimentIdentifier(self.main_window)
+        experiment_identifier.open()
 
     def show_linear_disassembly_view(self):
         view = self._get_or_create_disassembly_view()

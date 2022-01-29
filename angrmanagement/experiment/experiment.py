@@ -1,9 +1,10 @@
+import itertools
 import logging
 import os
 import random
 from enum import Enum
 from hashlib import md5
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 
 from PySide2 import QtCore
 
@@ -59,6 +60,14 @@ class Study:
         return self._curr_chall < 0 or self._curr_chall >= len(self.challenges)
 
 
+def _digest_encode(first_study: int, groups: str, chall_order: str) -> str:
+    """
+    Encodes digest according to first_study -> groups -> chall_order
+    """
+    cleartext = f"{first_study}{groups}{chall_order}"
+    return md5(cleartext.encode()).hexdigest()
+
+
 class RandomizedExperiment(QtCore.QObject):
     """
     Data structure used to track all the studies and their challenges in the current experiment
@@ -71,15 +80,19 @@ class RandomizedExperiment(QtCore.QObject):
     # Signals
     study_completed = QtCore.Signal()
     experiment_completed = QtCore.Signal()
+    digest_updated = QtCore.Signal()
 
     def __init__(self):
         super().__init__(QtCore.QCoreApplication.instance())
 
+        self._rainbow_table: Set[str] = set()  # All possible digests
         self._studies: List[Study] = []  # Collection of studies, with each study consisting of series of challenges
         self._experiment_digest: Optional[str] = None  # Encodes randomness, to sync with angr cloud
         self._challenge_order: List[int] = []  # Order that challenges should be shuffled to
         self._groups: Dict[StudyType, StudyGroup] = {}  # Group user will be a member of per study
         self._curr_study_idx = 0  # Index of study currently being conducted
+
+        self._build_rainbow_table()
 
     def _generate_digest(self):
         """
@@ -107,8 +120,21 @@ class RandomizedExperiment(QtCore.QObject):
             self._groups[study_type] = self._groups[study_type] = study_group_cls(study_group)
 
         chall_order = ''.join(challenge_order)
-        cleartext = f"{first_study}{groups}{chall_order}"
-        self._experiment_digest = md5(cleartext.encode()).hexdigest()
+        self.digest = _digest_encode(first_study, groups, chall_order)
+
+    def _build_rainbow_table(self):
+        for first_study in range(1, self.STUDY_COUNT + 1):
+            for g_perm in itertools.product(self.GROUP_OPTIONS, repeat=self.STUDY_COUNT):
+                groups = ''.join(g_perm)
+                for cord_perm in itertools.permutations(range(self.CHALLENGE_COUNT)):
+                    chall_order = ''.join(str(i) for i in cord_perm)
+                    self._rainbow_table.add(_digest_encode(first_study, groups, chall_order))
+
+    def validate_digest(self, digest: str) -> bool:
+        """
+        Determines whether the digest matches a possible output of the current encoding scheme
+        """
+        return digest in self._rainbow_table
 
     def _load_challenges(self):
         if self.studies:
@@ -158,7 +184,8 @@ class RandomizedExperiment(QtCore.QObject):
     @digest.setter
     def digest(self, new_digest: str):
         if self.validate_digest(new_digest):
-            self.digest = new_digest
+            self._experiment_digest = new_digest
+            self.digest_updated.emit()
 
     @property
     def next_chall(self) -> Optional[str]:
