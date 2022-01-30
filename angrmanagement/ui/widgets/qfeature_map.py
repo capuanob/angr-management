@@ -162,7 +162,7 @@ class FeatureMapItem(QGraphicsItem):
         except StopIteration:
             return None
 
-        return self._addr_to_region[self._offset_to_regionaddr[base_offset]]
+        return self._addr_to_region.get(self._offset_to_regionaddr[base_offset], None)
 
     def _get_offset_size_rect(self, offset: int, size: int) -> QRectF:
         """

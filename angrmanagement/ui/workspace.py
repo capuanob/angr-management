@@ -5,6 +5,8 @@ import traceback
 from angr.knowledge_plugins.functions.function import Function
 from angr import StateHierarchy
 from .dialogs.experiment_identifier import ExperimentIdentifier
+from ..experiment import Experiment_manager
+from ..experiment.experiment import StudyType, StudyGroup, ProximityGroup, DataDepGroup
 
 from ..logic.debugger import DebuggerWatcher
 from ..config import Conf
@@ -22,7 +24,6 @@ if TYPE_CHECKING:
     from ..data.instance import Instance
     from angrmanagement.ui.main_window import MainWindow
 
-
 _l = logging.getLogger(__name__)
 
 
@@ -30,6 +31,7 @@ class Workspace:
     """
     This class implements the angr management workspace.
     """
+
     def __init__(self, main_window, instance):
 
         self.main_window: 'MainWindow' = main_window
@@ -66,13 +68,30 @@ class Workspace:
             LogView(self, 'bottom'),
         ]
 
-        enabled_tabs =[x.strip() for x in Conf.enabled_tabs.split(",") if x.strip()]
+        # TODO: When DataDep is merged, add to this function
+        self._view_creation_funcs = {
+            FunctionsView: self._get_or_create_functions_view,
+            DisassemblyView: self._get_or_create_disassembly_view,
+            HexView: self._get_or_create_hex_view,
+            ProximityView: self._get_or_create_proximity_view,
+            CodeView: self._get_or_create_pseudocode_view,
+            StringsView: self._get_or_create_strings_view,
+            PatchesView: self._get_or_create_patches_view,
+            SymexecView: self._get_or_create_symexec_view,
+            StatesView: self._get_or_create_states_view,
+            InteractionView: self._get_or_create_interaction_view,
+            ConsoleView: self._get_or_create_console_view,
+            LogView: self._get_or_create_log_view,
+        }
+
+        enabled_tabs = [x.strip() for x in Conf.enabled_tabs.split(",") if x.strip()]
         for tab in self.default_tabs:
-            if tab.__class__.__name__ in enabled_tabs or len(enabled_tabs)==0:
+            if tab.__class__.__name__ in enabled_tabs or len(enabled_tabs) == 0:
                 self.add_view(tab)
 
         self._dbg_watcher = DebuggerWatcher(self.on_debugger_state_updated, self.instance.debugger_mgr.debugger)
         self.on_debugger_state_updated()
+        Experiment_manager.workspace = self
 
     #
     # Properties
@@ -89,6 +108,31 @@ class Workspace:
     #
     # Events
     #
+
+    def update_usable_views(self, study_type: StudyType, study_group: StudyGroup):
+        """
+        Set which views should be enabled / disabled for the current study
+        """
+        visible_view_categories = frozenset(self.view_manager.views_by_category.keys())
+        enabled_view_categories = Experiment_manager.enabled_views[(study_type, study_group)]
+
+        view_remove_categories = visible_view_categories.difference(enabled_view_categories)
+        view_add_categories = enabled_view_categories.difference(visible_view_categories)
+
+        # Remove and cache all views that shouldn't be enabled
+        for r_cat in view_remove_categories:
+            remove_views = self.view_manager.views_by_category[r_cat]
+            Experiment_manager.view_cache[r_cat] += remove_views
+            for r_view in remove_views:
+                self.view_manager.remove_view(r_view)
+
+        # Retrieve from cache and add all views that should be enabled that are not yet
+        for a_cat in view_add_categories:
+            cached_views = Experiment_manager.view_cache[a_cat]
+            if not cached_views:
+                _l.warning("No cached views of category %s!", a_cat)
+            for c_view in cached_views:
+                self.view_manager.add_view(c_view)
 
     def on_debugger_state_updated(self):
         """
@@ -214,7 +258,9 @@ class Workspace:
         return new_view
 
     def add_view(self, view):
-        self.view_manager.add_view(view)
+        curr_study = Experiment_manager.curr_study
+        if not curr_study or view.category in Experiment_manager.enabled_views[(curr_study.type_, curr_study.group)]:
+            self.view_manager.add_view(view)
 
     def remove_view(self, view):
         self.view_manager.remove_view(view)
@@ -229,7 +275,7 @@ class Workspace:
 
         self.view_manager.raise_view(view)
 
-    def reload(self, categories: Optional[List[str]]=None):
+    def reload(self, categories: Optional[List[str]] = None):
         """
         Ask all or specified views to reload the underlying data and regenerate the UI. This is usually expensive.
 
@@ -240,9 +286,9 @@ class Workspace:
         if categories is None:
             views = self.view_manager.views
         else:
-            views = [ ]
+            views = []
             for category in categories:
-                views.extend(self.view_manager.views_by_category.get(category, [ ]))
+                views.extend(self.view_manager.views_by_category.get(category, []))
 
         for view in views:
             try:
@@ -250,7 +296,7 @@ class Workspace:
             except Exception:  # pylint:disable=broad-except
                 _l.warning("Exception occurred during reloading view %s.", view, exc_info=True)
 
-    def refresh(self, categories: Optional[List[str]]=None):
+    def refresh(self, categories: Optional[List[str]] = None):
         """
         Ask all or specified views to refresh based on changes in the underlying data and refresh the UI if needed. This
         may be called frequently so it must be extremely fast.
@@ -262,9 +308,9 @@ class Workspace:
         if categories is None:
             views = self.view_manager.views
         else:
-            views = [ ]
+            views = []
             for category in categories:
-                views.extend(self.view_manager.views_by_category.get(category, [ ]))
+                views.extend(self.view_manager.views_by_category.get(category, []))
 
         for view in views:
             try:
@@ -694,7 +740,8 @@ class Workspace:
         if dv:
             dv.label_rename_callback = callback
 
-    def add_disasm_insn_ctx_menu_entry(self, text, callback: Callable[[DisasmInsnContextMenu], None], add_separator_first=True):
+    def add_disasm_insn_ctx_menu_entry(self, text, callback: Callable[[DisasmInsnContextMenu], None],
+                                       add_separator_first=True):
         if len(self.view_manager.views_by_category['disassembly']) == 1:
             dv = self.view_manager.first_view_in_category('disassembly')  # type: DisassemblyView
         else:
