@@ -26,7 +26,7 @@ class OverrideView(QtWidgets.QWidget):
     def _layout_widgets(self):
         info_lbl = QtWidgets.QLabel(
             "Warning! Only override the experiment digest with a previously generated digest.\n"
-            "That means that this feature should only be used if angr management was closed mid-experiment."
+            "This feature should only be used if angr management was closed mid-experiment."
         )
         self._override_text_field.setPlaceholderText("Previously generated digest")
         self._override_error.setStyleSheet(self.styleSheet() + "color: red;")
