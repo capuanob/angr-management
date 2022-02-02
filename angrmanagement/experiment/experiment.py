@@ -1,14 +1,16 @@
 import itertools
 import logging
 import os
+import pickle
 import random
 from collections import defaultdict
 from enum import Enum
 from hashlib import md5
+from types import SimpleNamespace
 from typing import List, Optional, Dict, Set, Tuple
+
 from PySide2 import QtCore
 
-from ..config import RES_LOCATION
 from ..ui import views
 
 _l = logging.getLogger(name=__name__)
@@ -45,20 +47,20 @@ class Study:
         self.type_ = type_
         self.group = group
         self.challenges = challenges
-        self._curr_chall = 0  # Points to current challenge
+        self.curr_chall_idx = 0  # Points to current challenge
 
     @property
     def next_chall(self) -> Optional[str]:
         if self.is_complete():
             return None
         # Challenge is in bounds
-        chall = self.challenges[self._curr_chall]
-        self._curr_chall += 1
+        chall = self.challenges[self.curr_chall_idx]
+        self.curr_chall_idx += 1
         return chall
 
     def is_complete(self) -> bool:
         # Whether there are any more challenges available for the given study
-        return self._curr_chall < 0 or self._curr_chall >= len(self.challenges)
+        return self.curr_chall_idx < 0 or self.curr_chall_idx >= len(self.challenges)
 
 
 def _digest_encode(first_study: int, groups: str, chall_order: str) -> str:
@@ -73,7 +75,8 @@ class RandomizedExperiment(QtCore.QObject):
     """
     Data structure used to track all the studies and their challenges in the current experiment
     """
-    CHALLENGE_LOCATION = str(os.path.join(RES_LOCATION, 'challenges'))
+    CHALLENGE_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Desktop', 'challenges'))
+    LOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, 'log'))
     STUDY_COUNT = 2  # Number of independent studies in the experiment
     CHALLENGE_COUNT = 5  # Number of challenges per study
     GROUP_OPTIONS = ['A', 'B']  # Identifiers of groups per study
@@ -152,6 +155,41 @@ class RandomizedExperiment(QtCore.QObject):
         self.view_cache: Dict[str, List[Tuple[views.BaseView, Optional[object]]]] = defaultdict(list)
 
         self._build_rainbow_table()
+        self._recover_from_log_file()
+
+    def _update_log_file(self, curr_chall_idx):
+        """Maintains participant's progress in the experiment in the case of a crash"""
+        if os.path.exists(self.CHALLENGE_LOCATION):
+            with open(self.LOG_LOCATION, 'wb+') as f:
+                pickle.dump({
+                    'digest': self.digest,
+                    'first_study': self._first_study,
+                    'chall_idx': curr_chall_idx,
+                    'study_idx': self._curr_study_idx,
+                    'groups': self._groups,
+                    'studies': self.studies,
+                    'chall_order': self._challenge_order,
+                }, f)
+        else:
+            _l.error("No challenge directory exists!")
+
+    def _recover_from_log_file(self):
+        """If a log file exists, recover experiment state using it"""
+        if os.path.exists(self.LOG_LOCATION):
+            try:
+                with open(self.LOG_LOCATION, 'rb') as f:
+                    log_json = SimpleNamespace(**pickle.load(f))
+                    self.digest = log_json.digest
+                    self._studies = log_json.studies
+                    self._first_study = log_json.first_study
+                    self._curr_study_idx = log_json.study_idx
+                    self.curr_study.curr_chall_idx = max(0, log_json.chall_idx - 1)
+                    self._groups = log_json.groups
+                    self._challenge_order = log_json.chall_order
+            except (KeyError, AttributeError):
+                # Get rid of corrupt log file and let them restart experiment
+                _l.error("Incorrect log file format!")
+                os.unlink(self.LOG_LOCATION)
 
     def _generate_digest(self):
         """
@@ -204,8 +242,11 @@ class RandomizedExperiment(QtCore.QObject):
             for dirpath, _, filenames in os.walk(self.CHALLENGE_LOCATION):
                 if filenames:
                     # Figure out which study's directory is currently being processed
-                    dir_name = os.path.basename(dirpath)
-                    study_type = StudyType[dir_name.upper()]
+                    dir_name = os.path.basename(dirpath).upper()
+                    if dir_name not in StudyType._member_names_:
+                        continue
+
+                    study_type = StudyType[dir_name]
                     study_group = self.groups[study_type]
 
                     # Order challenges according to reorder defined in digest
@@ -269,23 +310,28 @@ class RandomizedExperiment(QtCore.QObject):
             self._load_challenges()
             if self.workspace:
                 self.workspace.update_usable_views(self.curr_study.type_, self.curr_study.group)
-
         elif self.is_complete():
             return None
-        curr_study = self._studies[self._curr_study_idx]
-        print(f"In study {curr_study.type_} group {curr_study.group}")
-        if curr_study.is_complete():
+
+        if self.curr_study.is_complete():
             # Need to increment to next study
             self._curr_study_idx += 1
             if self.is_complete():
                 # No more studies remain, experiment is done!
+                if os.path.exists(self.LOG_LOCATION):
+                    os.unlink(self.LOG_LOCATION)
+
                 self.experiment_completed.emit()
                 return None
             else:
                 self.workspace.update_usable_views(self.curr_study.type_, self.curr_study.group)
-                return self._studies[self._curr_study_idx].next_chall
+                next_chall = self.curr_study.next_chall
+                self._update_log_file(self.curr_study.curr_chall_idx)
+                return next_chall
         else:
-            return curr_study.next_chall
+            next_chall = self.curr_study.next_chall
+            self._update_log_file(self.curr_study.curr_chall_idx)
+            return next_chall
 
     def is_complete(self) -> bool:
         # Whether any unfinished studies remain
