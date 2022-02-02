@@ -8,13 +8,11 @@ from hashlib import md5
 from typing import List, Optional, Dict, Set, Tuple
 from PySide2 import QtCore
 
-from ..config import RES_LOCATION, Conf
+from ..config import RES_LOCATION
 from ..ui import views
 
 _l = logging.getLogger(name=__name__)
 
-# Configure the tabs that both studies want to be usable
-# TODO: When DataDep is merged, add them to these functions
 
 class StudyType(Enum):
     """ Enumerates the names of the studies in the experiment"""
@@ -39,6 +37,7 @@ class DataDepGroup(StudyGroup):
     DATA_DEP = 'A'
     NO_DATA_DEP = 'B'
 
+
 class Study:
     """Defines a study in the overarching experiment and its properties"""
 
@@ -60,6 +59,7 @@ class Study:
     def is_complete(self) -> bool:
         # Whether there are any more challenges available for the given study
         return self._curr_chall < 0 or self._curr_chall >= len(self.challenges)
+
 
 def _digest_encode(first_study: int, groups: str, chall_order: str) -> str:
     """
@@ -124,6 +124,7 @@ class RandomizedExperiment(QtCore.QObject):
             (StudyType.DATA_DEP, DataDepGroup.DATA_DEP): frozenset([
                 'functions',
                 'disassembly',
+                'data_dependency',
                 'hex',
                 'strings',
                 'patches',
