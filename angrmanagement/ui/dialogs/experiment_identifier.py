@@ -4,54 +4,6 @@ from PySide2.QtCore import Qt, Slot, Signal
 from angrmanagement.experiment import Experiment_manager
 
 
-class OverrideView(QtWidgets.QWidget):
-    """Widget to display to facilitate an override"""
-
-    override_success = Signal()  # Emitted on a successful digest override
-
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__(parent)
-
-        self._override_text_field = QtWidgets.QLineEdit()
-        self._override_btn = QtWidgets.QPushButton("Override")
-        self._override_error = QtWidgets.QLabel()
-
-        self._layout_manager = QtWidgets.QVBoxLayout(self)
-
-        # Connect signals to slots
-        self._override_btn.clicked.connect(self._on_override_click)
-
-        self._layout_widgets()
-
-    def _layout_widgets(self):
-        info_lbl = QtWidgets.QLabel(
-            "Warning! Only override the experiment digest with a previously generated digest.\n"
-            "This feature should only be used if angr management was closed mid-experiment."
-        )
-        self._override_text_field.setPlaceholderText("Previously generated digest")
-        self._override_error.setStyleSheet(self.styleSheet() + "color: red;")
-        self._override_error.hide()
-
-        self._layout_manager.addWidget(info_lbl, 0, Qt.AlignCenter)
-        self._layout_manager.addSpacing(7)
-        self._layout_manager.addWidget(self._override_text_field)
-        self._layout_manager.addSpacing(25)
-        self._layout_manager.addWidget(self._override_btn)
-        self._layout_manager.addWidget(self._override_error)
-
-    @Slot()
-    def _on_override_click(self):
-        self._override_error.hide()
-
-        input_digest = self._override_text_field.text()
-        if Experiment_manager.validate_digest(input_digest):
-            Experiment_manager.digest = input_digest
-            self.override_success.emit()
-        else:
-            self._override_error.show()
-            self._override_error.setText("Provided digest isn't properly formatted!")
-
-
 class DigestView(QtWidgets.QWidget):
     """Default view for ExperimentIdentifier"""
 
@@ -105,34 +57,11 @@ class ExperimentIdentifier(QtWidgets.QDialog):
         self.setModal(True)
 
         self._default_view = DigestView(self)
-        self._override_view = OverrideView(self)
         self._layout_manager = QtWidgets.QVBoxLayout(self)
-
-        self._advanced_btn = QtWidgets.QPushButton("Advanced")
-        self._go_back_btn = QtWidgets.QPushButton("Go back")
 
         # Connect signals to slots
         self._default_view.done_btn.clicked.connect(self.accept)
-        self._override_view.override_success.connect(self.accept)
-        self._advanced_btn.clicked.connect(self._on_view_switch_click)
-        self._go_back_btn.clicked.connect(self._on_view_switch_click)
         self._layout_widgets()
 
     def _layout_widgets(self):
-        self._override_view.hide()
-        self._go_back_btn.hide()
-        self._advanced_btn.setStyleSheet(self.styleSheet() + "color: #89CFF0; border: 0px;")
-        self._go_back_btn.setStyleSheet(self.styleSheet() + "color: #89CFF0; border: 0px;")
-
         self._layout_manager.addWidget(self._default_view)
-        self._layout_manager.addWidget(self._override_view)
-        self._layout_manager.addStretch()
-        self._layout_manager.addWidget(self._advanced_btn, 0, Qt.AlignRight)
-        self._layout_manager.addWidget(self._go_back_btn, 0, Qt.AlignRight)
-
-    @Slot()
-    def _on_view_switch_click(self):
-        self._default_view.setHidden(not self._default_view.isHidden())
-        self._override_view.setHidden(not self._override_view.isHidden())
-        self._advanced_btn.setHidden(not self._advanced_btn.isHidden())
-        self._go_back_btn.setHidden(not self._go_back_btn.isHidden())

@@ -76,7 +76,7 @@ class RandomizedExperiment(QtCore.QObject):
     Data structure used to track all the studies and their challenges in the current experiment
     """
     CHALLENGE_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Desktop', 'challenges'))
-    LOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, 'log'))
+    LOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, '.log'))
     STUDY_COUNT = 2  # Number of independent studies in the experiment
     CHALLENGE_COUNT = 5  # Number of challenges per study
     GROUP_OPTIONS = ['A', 'B']  # Identifiers of groups per study

@@ -134,6 +134,7 @@ class Workspace:
             for c_view in cached_views:
                 self.view_manager.add_view(c_view)
 
+        self.raise_view(self.view_manager.first_view_in_category('disassembly'))
     def on_debugger_state_updated(self):
         """
         Jump to debugger target PC in active disassembly view.
