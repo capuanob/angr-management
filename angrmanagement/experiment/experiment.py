@@ -55,7 +55,6 @@ class Study:
             return None
         # Challenge is in bounds
         chall = self.challenges[self.curr_chall_idx]
-        self.curr_chall_idx += 1
         return chall
 
     def is_complete(self) -> bool:
@@ -299,6 +298,9 @@ class RandomizedExperiment(QtCore.QObject):
             return self._studies[self._curr_study_idx]
         else:
             return None
+
+    def increment_challenge(self):
+        self.curr_study.curr_chall_idx += 1
 
     @property
     def next_chall(self) -> Optional[str]:

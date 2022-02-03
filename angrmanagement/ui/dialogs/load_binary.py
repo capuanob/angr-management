@@ -3,6 +3,7 @@ import os
 import binascii
 import logging
 import archinfo
+from angrmanagement.experiment import Experiment_manager
 from cle import Blob
 
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget, QCheckBox, QFrame, QGroupBox, \
@@ -292,6 +293,7 @@ class LoadBinary(QDialog):
                 not self.option_widgets['recover_variables_on_matched_functions'].isChecked(),
         }
 
+        Experiment_manager.increment_challenge()
         self.close()
 
     def _on_cancel_clicked(self):
