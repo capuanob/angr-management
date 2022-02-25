@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
     # Dialogs
     #
 
-    def _open_mainfile_dialog(self):
+    def open_mainfile_dialog(self):
         # pylint: disable=assigning-non-slot
         # https://github.com/PyCQA/pylint/issues/3793
         file_path, _ = QFileDialog.getOpenFileName(self, "Open a binary", Conf.last_used_directory,
@@ -293,6 +293,15 @@ class MainWindow(QMainWindow):
 
         # Raise the DisassemblyView after everything has initialized
         center_dockable_views[0].raise_()
+
+        # Toggle exec breakpoint
+        QShortcut(QKeySequence(Qt.Key_F2), self, self.workspace.toggle_exec_breakpoint)
+
+        # Single step
+        QShortcut(QKeySequence(Qt.Key_F7), self, self.workspace.step_forward)
+
+        # Run
+        QShortcut(QKeySequence(Qt.Key_F9), self, self.workspace.continue_forward)
 
     #
     # Plugins
@@ -473,7 +482,7 @@ class MainWindow(QMainWindow):
             self.load_file(next_chall_path)
 
     def open_file_button(self):
-        file_path = self._open_mainfile_dialog()
+        file_path = self.open_mainfile_dialog()
         if not file_path:
             return
         self.load_file(file_path)
@@ -542,6 +551,10 @@ class MainWindow(QMainWindow):
         if not isurl(file_path):
             # file
             if os.path.isfile(file_path):
+                if file_path.endswith(".trace"):
+                    self.workspace.load_trace_from_path(file_path)
+                    return
+
                 self.workspace.instance.binary_path = file_path
                 self.workspace.instance.original_binary_path = file_path
                 if file_path.endswith(".adb"):
@@ -623,6 +636,12 @@ class MainWindow(QMainWindow):
             file_path = file_path + ".adb"
 
         return self._save_database(file_path)
+
+    def load_trace(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Load trace", ".", "bintrace (*.trace)")
+        if not file_path:
+            return
+        self.workspace.load_trace_from_path(file_path)
 
     def preferences(self):
 
