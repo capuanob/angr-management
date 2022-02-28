@@ -47,7 +47,6 @@ from .workspace import Workspace
 from .dialogs.load_plugins import LoadPlugins
 from .dialogs.load_docker_prompt import LoadDockerPrompt, LoadDockerPromptError
 from .dialogs.new_state import NewState
-from .dialogs.experiment_identifier import ExperimentIdentifier
 from .dialogs.about import LoadAboutDialog
 from .dialogs.preferences import Preferences
 from .toolbars import FileToolbar, DebugToolbar
@@ -117,7 +116,6 @@ class MainWindow(QMainWindow):
             self.windowHandle().screenChanged.connect(self.on_screen_changed)
             self.show()
 
-            self.workspace.show_experiment_digest_view()
         self.status = "Ready."
 
     def sizeHint(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use

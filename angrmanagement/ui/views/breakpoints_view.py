@@ -6,7 +6,7 @@ from PySide2.QtCore import QAbstractTableModel, Qt, QSize
 from PySide2.QtWidgets import QTableView, QAbstractItemView, QHeaderView, QVBoxLayout, QMenu
 
 from ...data.breakpoint import Breakpoint, BreakpointType, BreakpointManager
-from ..dialogs import BreakpointDialog
+# from ..dialogs import BreakpointDialog
 from .view import BaseView
 
 

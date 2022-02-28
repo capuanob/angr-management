@@ -1,13 +1,13 @@
 import itertools
 import logging
+import logging
 import os
 import pickle
-import random
+import time
 from collections import defaultdict
 from enum import Enum
-from hashlib import md5
 from types import SimpleNamespace
-from typing import List, Optional, Dict, Set, Tuple
+from typing import List, Optional, Dict, Tuple
 
 from PySide2 import QtCore
 
@@ -34,11 +34,15 @@ class ProximityGroup(StudyGroup):
     NO_PROXIMITY = 'B'
 
 
+ProximityChallenges = ["quad", "letters", "maze"]  # Original order of challenges for proximity
+
 class DataDepGroup(StudyGroup):
     """Enumerates the groups a user could be assigned to in the data dependency graph study"""
     DATA_DEP = 'A'
     NO_DATA_DEP = 'B'
 
+
+DataDepChallenges = ["middle", "galaxy", "?"]  # Original order of challenges for data_dep
 
 class Study:
     """Defines a study in the overarching experiment and its properties"""
@@ -47,27 +51,25 @@ class Study:
         self.type_ = type_
         self.group = group
         self.challenges = challenges
-        self.curr_chall_idx = 0  # Points to current challenge
+        self.curr_chall_idx = -1  # Points to current challenge
+
+    @property
+    def curr_chall(self) -> Optional[str]:
+        if self.is_complete():
+            return None
+        return self.challenges[self.curr_chall_idx]
 
     @property
     def next_chall(self) -> Optional[str]:
         if self.is_complete():
             return None
         # Challenge is in bounds
-        chall = self.challenges[self.curr_chall_idx]
+        chall = self.challenges[self.curr_chall_idx + 1]
         return chall
 
     def is_complete(self) -> bool:
         # Whether there are any more challenges available for the given study
-        return self.curr_chall_idx < 0 or self.curr_chall_idx >= len(self.challenges)
-
-
-def _digest_encode(first_study: int, groups: str, chall_order: str) -> str:
-    """
-    Encodes digest according to first_study -> groups -> chall_order
-    """
-    cleartext = f"{first_study}{groups}{chall_order}"
-    return md5(cleartext.encode()).hexdigest()
+        return self.curr_chall_idx >= len(self.challenges) - 1
 
 
 class RandomizedExperiment(QtCore.QObject):
@@ -82,7 +84,6 @@ class RandomizedExperiment(QtCore.QObject):
 
     # Signals
     experiment_completed = QtCore.Signal()
-    digest_updated = QtCore.Signal()
 
     def __init__(self):
         super().__init__(QtCore.QCoreApplication.instance())
@@ -91,7 +92,8 @@ class RandomizedExperiment(QtCore.QObject):
         self._rainbow_table: Set[str] = set()  # All possible digests
         self._studies: List[Study] = []  # Collection of studies, with each study consisting of series of challenges
         self._experiment_digest: Optional[str] = None  # Encodes randomness, to sync with angr cloud
-        self._challenge_order: List[int] = []  # Order that challenges should be shuffled to
+        self._prox_challenge_order: List[int] = []  # Order of proximity challenges
+        self._data_dep_challenge_order: List[int] = []  # order of data dep challenges
         self._first_study: int = 0
         self._groups: Dict[StudyType, StudyGroup] = {}  # Group user will be a member of per study
         self._curr_study_idx = 0  # Index of study currently being conducted
@@ -153,117 +155,74 @@ class RandomizedExperiment(QtCore.QObject):
         # Used to save views that have been removed from the workspace for (possible) re-adding later
         self.view_cache: Dict[str, List[Tuple[views.BaseView, Optional[object]]]] = defaultdict(list)
 
-        self._build_rainbow_table()
+        self._load_digest()
         self._recover_from_log_file()
 
     def _update_log_file(self, curr_chall_idx):
         """Maintains participant's progress in the experiment in the case of a crash"""
         if os.path.exists(self.CHALLENGE_LOCATION):
-            with open(self.LOG_LOCATION, 'wb+') as f:
+            with open(self.PLOG_LOCATION, 'wb+') as f:
                 pickle.dump({
-                    'digest': self.digest,
-                    'first_study': self._first_study,
                     'chall_idx': curr_chall_idx,
                     'study_idx': self._curr_study_idx,
-                    'groups': self._groups,
                     'studies': self.studies,
-                    'chall_order': self._challenge_order,
                 }, f)
         else:
             _l.error("No challenge directory exists!")
 
     def _recover_from_log_file(self):
         """If a log file exists, recover experiment state using it"""
-        if os.path.exists(self.LOG_LOCATION):
+        if os.path.exists(self.PLOG_LOCATION):
             try:
-                with open(self.LOG_LOCATION, 'rb') as f:
+                with open(self.PLOG_LOCATION, 'rb') as f:
                     log_json = SimpleNamespace(**pickle.load(f))
-                    self.digest = log_json.digest
                     self._studies = log_json.studies
-                    self._first_study = log_json.first_study
                     self._curr_study_idx = log_json.study_idx
-                    self.curr_study.curr_chall_idx = max(0, log_json.chall_idx - 1)
-                    self._groups = log_json.groups
-                    self._challenge_order = log_json.chall_order
+                    self.curr_study.curr_chall_idx = max(-1, log_json.chall_idx - 1)
             except (KeyError, AttributeError):
                 # Get rid of corrupt log file and let them restart experiment
                 _l.error("Incorrect log file format!")
-                os.unlink(self.LOG_LOCATION)
+                os.unlink(self.PLOG_LOCATION)
 
-    def _generate_digest(self):
-        """
-        Generates an MD5 digest encoding the user's study order, group, and challenge order
-        Format: <first study num><group char><shuffled challenge order>
+    def _load_digest(self):
+        # Loads digest from dlog (waits until file exists)
+        dlog_exists = False
+        while not dlog_exists:
+            dlog_exists = os.path.exists(self.DLOG_LOCATION)
+            if not dlog_exists:
+                time.sleep(2)
 
-        Example: If a user is assigned to perform the second study first, group A in study 1 and B in study 2,
-        with the challenge order 5 -> 4 -> 2 -> 3 -> 1, then the following is output
+        with open(self.DLOG_LOCATION, 'rb') as f:
+            self._experiment_digest = pickle.load(f)
 
-        MD5(2AB54231)
-        """
-
-        challenge_order = [str(c) for c in range(self.CHALLENGE_COUNT)]
-        random.shuffle(challenge_order)
-        self._challenge_order = challenge_order
-
-        self._first_study = random.randint(0, self.STUDY_COUNT - 1)
-
-        groups = ''
-        for study_num in range(self.STUDY_COUNT):
-            study_group = random.choice(self.GROUP_OPTIONS)
-            groups += study_group
-            study_type = StudyType(study_num)
-            study_group_cls = ProximityGroup if study_type is StudyType.PROXIMITY else DataDepGroup
-            self._groups[study_type] = self._groups[study_type] = study_group_cls(study_group)
-
-        chall_order = ''.join(challenge_order)
-        self._experiment_digest = _digest_encode(self._first_study, groups, chall_order)
-
-    def _build_rainbow_table(self):
-        for first_study in range(0, self.STUDY_COUNT - 1):
-            for g_perm in itertools.product(self.GROUP_OPTIONS, repeat=self.STUDY_COUNT):
-                groups = ''.join(g_perm)
-                for cord_perm in itertools.permutations(range(self.CHALLENGE_COUNT)):
-                    chall_order = ''.join(str(i) for i in cord_perm)
-                    self._rainbow_table.add(_digest_encode(first_study, groups, chall_order))
-
-    def validate_digest(self, digest: str) -> bool:
-        """
-        Determines whether the digest matches a possible output of the current encoding scheme
-        """
-        return digest in self._rainbow_table
+        self._first_study = int(not self._experiment_digest['is_proximity_first'])  # Convert from boolean to int
+        self._groups[StudyType.PROXIMITY] = ProximityGroup.NO_PROXIMITY if self._experiment_digest[
+            'is_proximity_control'] else ProximityGroup.PROXIMITY
+        self._groups[StudyType.DATA_DEP] = DataDepGroup.NO_DATA_DEP if self._experiment_digest[
+            'is_data_dep_control'] else DataDepGroup.DATA_DEP
+        self._prox_challenge_order = self._experiment_digest['prox_challenge_order']
+        self._data_dep_challenge_order = self._experiment_digest['data_dep_challenge_order']
 
     def _load_challenges(self):
         if self.studies:
             # Challenges have already been initialized, no need to do it again
             return
 
-        try:
-            for dirpath, _, filenames in os.walk(self.CHALLENGE_LOCATION):
-                if filenames:
-                    # Figure out which study's directory is currently being processed
-                    dir_name = os.path.basename(dirpath).upper()
-                    if dir_name not in StudyType._member_names_:
-                        continue
+        # Align data dep and proximity challenges according to digest order
+        prox_chall_paths = [os.path.join(self.CHALLENGE_LOCATION, ch) for ch in ProximityChallenges]
+        data_dep_chall_paths = [os.path.join(self.CHALLENGE_LOCATION, ch) for ch in DataDepChallenges]
+        prox_challs = [prox_chall_paths[i] for i in self._prox_challenge_order]
+        data_dep_challs = [data_dep_chall_paths[i] for i in self._data_dep_challenge_order]
 
-                    study_type = StudyType[dir_name]
-                    study_group = self.groups[study_type]
+        self._studies.append(Study(StudyType.PROXIMITY, self.groups[StudyType.PROXIMITY], prox_challs))
+        self._studies.append(Study(StudyType.DATA_DEP, self.groups[StudyType.DATA_DEP], data_dep_challs))
 
-                    # Order challenges according to reorder defined in digest
-                    challenges = sorted([os.path.join(dirpath, fname) for fname in filenames])
-                    challenges = [challenges[int(i)] for i in self._challenge_order]
-                    self._studies.append(Study(study_type, study_group, challenges))
-
-            # Shuffle studies according to reorder defined in digest
-            curr_first_study = self._studies[0]
-            if curr_first_study.type_ is not StudyType(self._first_study):
-                # Need to swap
-                self._studies[0] = self._studies[1]
-                self._studies[1] = curr_first_study
-
-        except (ValueError, OSError) as err:
-            _l.critical("Unable to load challenge binaries")
-            _l.critical(str(err))
-            return
+        # Shuffle studies according to reorder defined in digest
+        curr_first_study = self._studies[0]
+        if curr_first_study.type_ is not StudyType(self._first_study):
+            # Need to swap
+            self._studies[0] = self._studies[1]
+            self._studies[1] = curr_first_study
 
     @property
     def studies(self) -> Optional[List[Study]]:
@@ -275,22 +234,11 @@ class RandomizedExperiment(QtCore.QObject):
 
     @property
     def groups(self) -> Dict[StudyType, StudyGroup]:
-        if not self._groups:
-            self._generate_digest()
         return self._groups
 
     @property
     def digest(self) -> str:
-        # lazy getter
-        if not self._experiment_digest:
-            self._generate_digest()
         return self._experiment_digest
-
-    @digest.setter
-    def digest(self, new_digest: str):
-        if self.validate_digest(new_digest):
-            self._experiment_digest = new_digest
-            self.digest_updated.emit()
 
     @property
     def curr_study(self) -> Optional[Study]:
@@ -320,8 +268,8 @@ class RandomizedExperiment(QtCore.QObject):
             self._curr_study_idx += 1
             if self.is_complete():
                 # No more studies remain, experiment is done!
-                if os.path.exists(self.LOG_LOCATION):
-                    os.unlink(self.LOG_LOCATION)
+                if os.path.exists(self.PLOG_LOCATION):
+                    os.unlink(self.PLOG_LOCATION)
 
                 self.experiment_completed.emit()
                 return None

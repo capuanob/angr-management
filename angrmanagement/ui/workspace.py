@@ -1,31 +1,28 @@
-import os
-from typing import TYPE_CHECKING, Callable, Optional, List, Union
 import logging
+import os
 import traceback
+from typing import TYPE_CHECKING, Callable, Optional, List, Union
 
 from PySide2.QtWidgets import QMessageBox
-from angr.knowledge_plugins.functions.function import Function
+
 from angr import StateHierarchy
-from .dialogs.experiment_identifier import ExperimentIdentifier
-from ..experiment import Experiment_manager
-from ..experiment.experiment import StudyType, StudyGroup, ProximityGroup, DataDepGroup
+from angr.knowledge_plugins.functions.function import Function
 from cle import SymbolType
-
-from ..logic.debugger import DebuggerWatcher
-from ..logic.debugger.bintrace import BintraceDebugger
-
-from ..config import Conf
-from ..data.breakpoint import Breakpoint, BreakpointType
-from ..data.trace import BintraceTrace, Trace
-from ..data.instance import ObjectContainer
-from ..data.jobs.loading import LoadBinaryJob
-from ..data.jobs import CodeTaggingJob, PrototypeFindingJob, VariableRecoveryJob, FlirtSignatureRecognitionJob
+from .menus.disasm_insn_context_menu import DisasmInsnContextMenu
+from .view_manager import ViewManager
 from .views import (FunctionsView, DisassemblyView, SymexecView, StatesView, StringsView, ConsoleView, CodeView,
                     InteractionView, PatchesView, DependencyView, ProximityView, TypesView, HexView, LogView,
                     DataDepView, RegistersView, StackView, TracesView, TraceMapView, BreakpointsView)
-from .view_manager import ViewManager
-from .menus.disasm_insn_context_menu import DisasmInsnContextMenu
-
+from ..config import Conf
+from ..data.breakpoint import Breakpoint, BreakpointType
+from ..data.instance import ObjectContainer
+from ..data.jobs import CodeTaggingJob, PrototypeFindingJob, VariableRecoveryJob, FlirtSignatureRecognitionJob
+from ..data.jobs.loading import LoadBinaryJob
+from ..data.trace import BintraceTrace, Trace
+from ..experiment import Experiment_manager
+from ..experiment.experiment import StudyType, StudyGroup
+from ..logic.debugger import DebuggerWatcher
+from ..logic.debugger.bintrace import BintraceDebugger
 from ..plugins import PluginManager
 
 if TYPE_CHECKING:
@@ -577,11 +574,6 @@ class Workspace:
         else:
             console.print_text(msg)
             console.print_text('\n')
-
-    def show_experiment_digest_view(self):
-        # Show modal consent form before allowing the user to interact with angr management
-        experiment_identifier = ExperimentIdentifier(self.main_window)
-        experiment_identifier.open()
 
     def show_linear_disassembly_view(self):
         view = self._get_or_create_disassembly_view()
