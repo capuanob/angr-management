@@ -1,6 +1,5 @@
-
-from PySide2.QtGui import QKeySequence
 from PySide2.QtCore import Qt
+from PySide2.QtGui import QKeySequence
 
 from .menu import Menu, MenuEntry, MenuSeparator
 
@@ -9,6 +8,7 @@ class FileMenu(Menu):
     """
     Lays out the entries under the 'File' menu
     """
+
     def __init__(self, main_window):
         super().__init__("&File", parent=main_window)
 
@@ -26,7 +26,7 @@ class FileMenu(Menu):
             MenuSeparator(),
             MenuEntry('Load a new &trace...', main_window.load_trace),
             MenuSeparator(),
-            MenuEntry('&Preferences...', main_window.preferences, shortcut=QKeySequence(Qt.CTRL + Qt.Key_P)),
+            MenuEntry('Preferences...', main_window.preferences),
             MenuSeparator(),
             MenuEntry('E&xit', main_window.quit),
         ])

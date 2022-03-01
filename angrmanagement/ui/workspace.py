@@ -140,6 +140,7 @@ class Workspace:
                 self.view_manager.add_view(c_view)
 
         self.raise_view(self.view_manager.first_view_in_category('disassembly'))
+
     def on_debugger_state_updated(self):
         """
         Jump to debugger target PC in active disassembly view.
@@ -535,15 +536,15 @@ class Workspace:
 
         if load_options is None:
             QMessageBox.warning(None, "Error", "Failed to determine load options for binary from trace. "
-                                      "Please select binary.")
+                                               "Please select binary.")
             load_options = {}
         else:
             thing = load_options["thing"]
             load_options = load_options["load_options"]
             if not os.path.exists(thing):
                 QMessageBox.warning(None, "Unable to find target binary!",
-                                          f"Unable to find the traced binary at: \n\n{thing}\n\n"
-                                          "Please select target binary.")
+                                    f"Unable to find the traced binary at: \n\n{thing}\n\n"
+                                    "Please select target binary.")
                 thing = None
 
         if not thing:

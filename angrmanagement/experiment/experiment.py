@@ -1,4 +1,3 @@
-import itertools
 import logging
 import logging
 import os
@@ -36,6 +35,7 @@ class ProximityGroup(StudyGroup):
 
 ProximityChallenges = ["quad", "letters", "maze"]  # Original order of challenges for proximity
 
+
 class DataDepGroup(StudyGroup):
     """Enumerates the groups a user could be assigned to in the data dependency graph study"""
     DATA_DEP = 'A'
@@ -43,6 +43,7 @@ class DataDepGroup(StudyGroup):
 
 
 DataDepChallenges = ["middle", "galaxy", "?"]  # Original order of challenges for data_dep
+
 
 class Study:
     """Defines a study in the overarching experiment and its properties"""
@@ -76,10 +77,12 @@ class RandomizedExperiment(QtCore.QObject):
     """
     Data structure used to track all the studies and their challenges in the current experiment
     """
-    CHALLENGE_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Desktop', 'challenges'))
-    LOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, '.log'))
+    DOCUMENT_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Documents'))
+    CHALLENGE_LOCATION = str(os.path.join(DOCUMENT_LOCATION, 'challenges'))
+    PLOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, '.plog'))
+    DLOG_LOCATION = str(os.path.join(DOCUMENT_LOCATION, '.dlog'))
     STUDY_COUNT = 2  # Number of independent studies in the experiment
-    CHALLENGE_COUNT = 5  # Number of challenges per study
+    CHALLENGE_COUNT = 3  # Number of challenges per study
     GROUP_OPTIONS = ['A', 'B']  # Identifiers of groups per study
 
     # Signals
@@ -89,7 +92,6 @@ class RandomizedExperiment(QtCore.QObject):
         super().__init__(QtCore.QCoreApplication.instance())
 
         self.workspace = None
-        self._rainbow_table: Set[str] = set()  # All possible digests
         self._studies: List[Study] = []  # Collection of studies, with each study consisting of series of challenges
         self._experiment_digest: Optional[str] = None  # Encodes randomness, to sync with angr cloud
         self._prox_challenge_order: List[int] = []  # Order of proximity challenges
