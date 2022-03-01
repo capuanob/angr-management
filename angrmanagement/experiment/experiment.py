@@ -79,7 +79,7 @@ class RandomizedExperiment(QtCore.QObject):
     """
     DOCUMENT_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Documents'))
     CHALLENGE_LOCATION = str(os.path.join(os.path.expanduser('~'), 'Desktop', 'challenges'))
-    PLOG_LOCATION = str(os.path.join(CHALLENGE_LOCATION, '.plog'))
+    PLOG_LOCATION = str(os.path.join(DOCUMENT_LOCATION, '.plog'))
     DLOG_LOCATION = str(os.path.join(DOCUMENT_LOCATION, '.dlog'))
     STUDY_COUNT = 2  # Number of independent studies in the experiment
     CHALLENGE_COUNT = 3  # Number of challenges per study
