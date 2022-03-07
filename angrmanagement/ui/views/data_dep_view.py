@@ -131,7 +131,7 @@ class DataDepView(BaseView):
         )
 
         self._data_dep = data_dep
-        self._data_dep_graph = data_dep.graph
+        self._data_dep_graph = data_dep.simplified_graph
         self.reload()
 
     def hover_enter_block(self, block: QDataDepGraphBlock, modifiers: QtCore.Qt.KeyboardModifierMask):

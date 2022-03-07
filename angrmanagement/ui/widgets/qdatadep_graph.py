@@ -198,7 +198,6 @@ class QDataDepGraph(QZoomableDraggableGraphicsView):
         min_y -= self.TOP_PADDING
         max_y += self.TOP_PADDING
 
-        self._reset_view()
 
     def _initial_position(self):
         scene = self.scene()
