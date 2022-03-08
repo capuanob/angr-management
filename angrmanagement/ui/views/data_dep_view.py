@@ -37,12 +37,6 @@ class DataDepView(BaseView):
 
         # Get all instructions in the program
         self._instructions: Dict[int, 'CsInsn'] = {}
-        inst = self.workspace.instance
-        for _, func in inst.kb.functions.items():
-            for block in func.blocks:
-                disass = block.disassembly
-                for ins in disass.insns:
-                    self._instructions[ins.address] = ins
 
         self._end_state: Optional['SimState'] = None
         self._start_addr: Optional[int] = None
@@ -121,7 +115,14 @@ class DataDepView(BaseView):
         #     _l.error("Unable to generate data dependency graph with provided parameters!")
 
     def run_analysis(self):
+
+        # Get all instructions
         inst = self.workspace.instance
+        for _, func in inst.kb.functions.items():
+            for block in func.blocks:
+                disass = block.disassembly
+                for ins in disass.insns:
+                    self._instructions[ins.address] = ins
 
         data_dep: 'DataDependencyGraphAnalysis' = inst.project.analyses.DataDep(
             self._end_state,
@@ -157,6 +158,7 @@ class DataDepView(BaseView):
     def reload(self):
         if self._graph_widget is None:
             return
+
 
         # Re-Generate the graph
         if not self._data_dep:

@@ -1,4 +1,5 @@
 import logging
+import random
 from collections import defaultdict
 from typing import Optional, Any, List, Dict, TYPE_CHECKING, Set
 
@@ -198,11 +199,12 @@ class QDataDepGraph(QZoomableDraggableGraphicsView):
         min_y -= self.TOP_PADDING
         max_y += self.TOP_PADDING
 
+        self._reset_view()
 
     def _initial_position(self):
-        scene = self.scene()
-        if scene:
-            return scene.itemsBoundingRect().center()
+        # scene = self.scene()
+        # if scene:
+        #     return scene.itemsBoundingRect().center()
         return QtCore.QPointF(0, 0)
 
     def _is_on_screen(self, item: QtWidgets.QGraphicsItem) -> bool:
