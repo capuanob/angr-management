@@ -542,7 +542,6 @@ class DisassemblyView(SynchronizedView):
         self._display_function(function)
 
     def decompile_current_function(self):
-
         if self._current_function.am_obj is not None:
             try:
                 curr_ins = next(iter(self.infodock.selected_insns))

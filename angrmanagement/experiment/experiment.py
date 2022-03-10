@@ -42,7 +42,7 @@ class DataDepGroup(StudyGroup):
     NO_DATA_DEP = 'B'
 
 
-DataDepChallenges = ["middle", "galaxy", "?"]  # Original order of challenges for data_dep
+DataDepChallenges = ["middle", "follow", "notes"]  # Original order of challenges for data_dep
 
 
 class Study:
@@ -56,9 +56,10 @@ class Study:
 
     @property
     def curr_chall(self) -> Optional[str]:
-        if self.is_complete():
+        if 0 <= self.curr_chall_idx < len(self.challenges):
+            return self.challenges[self.curr_chall_idx]
+        else:
             return None
-        return self.challenges[self.curr_chall_idx]
 
     @property
     def next_chall(self) -> Optional[str]:
@@ -285,6 +286,28 @@ class RandomizedExperiment(QtCore.QObject):
             self._update_log_file(self.curr_study.curr_chall_idx)
             return next_chall
 
+    @property
+    def trace_file(self) -> Optional[str]:
+        """
+        Args:
+            chall_path: Challenge to get the trace file for, if it exists.
+
+        Returns: The path to the trace file, if it exists. Otherwise, None
+
+        """
+        chall_path = self.curr_study.curr_chall
+        if not chall_path:
+            return None
+
+        challenge_name = os.path.basename(chall_path).split('.')[0]
+        trace_path = os.path.join(self.CHALLENGE_LOCATION, challenge_name + '.trace')
+        return trace_path if os.path.exists(trace_path) else None
+
     def is_complete(self) -> bool:
         # Whether any unfinished studies remain
         return self._curr_study_idx < 0 or self._curr_study_idx >= len(self.studies)
+
+    def allow_view(self, category: str) -> bool:
+        # Whether or not the view should be allowed to load for the given function
+        curr_study = self.curr_study
+        return curr_study is not None and category in self.enabled_views[(curr_study.type_, curr_study.group)]

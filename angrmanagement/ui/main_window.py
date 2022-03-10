@@ -486,14 +486,14 @@ class MainWindow(QMainWindow):
         self.load_file(file_path)
 
     def open_trace_file_button(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open a trace file", Conf.last_used_directory,
-                                                   "All files (*);;"
-                                                   "Trace files (*.trace);;",
-                                                   )
-        Conf.last_used_directory = os.path.dirname(file_path)
-        if not file_path:
+        if not Experiment_manager.allow_view('data_dependency'):
+            QMessageBox.critical(self, "Unsupported", "This operation is not currently supported.")
             return
-        self.load_trace_file(file_path)
+
+        # Check if current experiment is data dependency and, if so, load the trace file
+        trace_file = Experiment_manager.trace_file
+        if trace_file and os.path.exists(trace_file):
+            self.load_trace_file(trace_file)
 
     def open_docker_button(self):
         required = {
@@ -663,10 +663,17 @@ class MainWindow(QMainWindow):
         self.workspace.instance.add_job(dep_analysis_job)
 
     def decompile_current_function(self):
+        if not Experiment_manager.allow_view('pseudocode'):
+            QMessageBox.critical(self, "Unsupported", "This operation is not supported")
+            return
+
         if self.workspace is not None:
             self.workspace.decompile_current_function()
 
     def view_proximity_for_current_function(self):
+        if not Experiment_manager.allow_view('proximity'):
+            QMessageBox.critical("Unsupported", "This operation is not supported")
+            return
         if self.workspace is not None:
             self.workspace.view_proximity_for_current_function()
 
