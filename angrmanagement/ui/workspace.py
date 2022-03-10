@@ -8,11 +8,6 @@ from PySide2.QtWidgets import QMessageBox
 from angr import StateHierarchy
 from angr.knowledge_plugins.functions.function import Function
 from cle import SymbolType
-from .menus.disasm_insn_context_menu import DisasmInsnContextMenu
-from .view_manager import ViewManager
-from .views import (FunctionsView, DisassemblyView, SymexecView, StatesView, StringsView, ConsoleView, CodeView,
-                    InteractionView, PatchesView, DependencyView, ProximityView, TypesView, HexView, LogView,
-                    DataDepView, RegistersView, StackView, TracesView, TraceMapView, BreakpointsView)
 from ..config import Conf
 from ..data.breakpoint import Breakpoint, BreakpointType
 from ..data.instance import ObjectContainer
@@ -23,6 +18,12 @@ from ..experiment import Experiment_manager
 from ..experiment.experiment import StudyType, StudyGroup
 from ..logic.debugger import DebuggerWatcher
 from ..logic.debugger.bintrace import BintraceDebugger
+from .views import (FunctionsView, DisassemblyView, SymexecView, StatesView, StringsView, ConsoleView, CodeView,
+                    InteractionView, PatchesView, DependencyView, ProximityView, TypesView, HexView, LogView,
+                    DataDepView, RegistersView, StackView, TracesView, TraceMapView, BreakpointsView)
+from .view_manager import ViewManager
+from .menus.disasm_insn_context_menu import DisasmInsnContextMenu
+
 from ..plugins import PluginManager
 
 if TYPE_CHECKING:
