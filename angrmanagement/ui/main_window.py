@@ -672,7 +672,7 @@ class MainWindow(QMainWindow):
 
     def view_proximity_for_current_function(self):
         if not Experiment_manager.allow_view('proximity'):
-            QMessageBox.critical("Unsupported", "This operation is not supported")
+            QMessageBox.critical(self, "Unsupported", "This operation is not supported")
             return
         if self.workspace is not None:
             self.workspace.view_proximity_for_current_function()
