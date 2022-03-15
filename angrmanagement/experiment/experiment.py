@@ -1,5 +1,4 @@
 import logging
-import logging
 import os
 import pickle
 import time
@@ -42,7 +41,7 @@ class DataDepGroup(StudyGroup):
     NO_DATA_DEP = 'B'
 
 
-DataDepChallenges = ["middle", "follow", "notes"]  # Original order of challenges for data_dep
+DataDepChallenges = ["median", "follow", "notes"]  # Original order of challenges for data_dep
 
 
 class Study:
@@ -109,9 +108,6 @@ class RandomizedExperiment(QtCore.QObject):
                 'hex',
                 'proximity',
                 'strings',
-                'patches',
-                'symexec',
-                'states',
                 'interaction',
                 'console',
                 'log',
@@ -121,9 +117,6 @@ class RandomizedExperiment(QtCore.QObject):
                 'disassembly',
                 'hex',
                 'strings',
-                'patches',
-                'symexec',
-                'states',
                 'interaction',
                 'console',
                 'log',
@@ -134,9 +127,6 @@ class RandomizedExperiment(QtCore.QObject):
                 'data_dependency',
                 'hex',
                 'strings',
-                'patches',
-                'symexec',
-                'states',
                 'interaction',
                 'console',
                 'log',
@@ -146,9 +136,6 @@ class RandomizedExperiment(QtCore.QObject):
                 'disassembly',
                 'hex',
                 'strings',
-                'patches',
-                'symexec',
-                'states',
                 'interaction',
                 'console',
                 'log',
