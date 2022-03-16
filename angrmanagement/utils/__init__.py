@@ -250,7 +250,7 @@ def get_string_for_display(cfg, insn_addr, project, max_size=20) -> Optional[str
         return None
 
 def get_comment_for_display(kb, insn_addr):
-    if insn_addr in kb.comments:
+    if kb and insn_addr in kb.comments:
         return kb.comments[insn_addr]
     else:
         return None

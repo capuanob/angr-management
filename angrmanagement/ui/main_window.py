@@ -9,7 +9,7 @@ from typing import Optional, TYPE_CHECKING
 from PySide2.QtWidgets import QMainWindow, QTabWidget, QFileDialog, QProgressBar
 from PySide2.QtWidgets import QMessageBox, QShortcut, QTabBar
 from PySide2.QtGui import QResizeEvent, QIcon, QDesktopServices, QKeySequence
-from PySide2.QtCore import Qt, QSize, QEvent, QTimer, QUrl
+from PySide2.QtCore import Qt, QSize, QEvent, QTimer, QUrl, Slot
 
 import angr
 import angr.flirt
@@ -116,6 +116,7 @@ class MainWindow(QMainWindow):
             self.windowHandle().screenChanged.connect(self.on_screen_changed)
             self.show()
 
+        Experiment_manager.experiment_completed.connect(self.on_experiment_complete)
         self.status = "Ready."
 
     def sizeHint(self, *args, **kwargs):  # pylint: disable=unused-argument,no-self-use
@@ -466,6 +467,10 @@ class MainWindow(QMainWindow):
 
     def on_center_tab_clicked(self, index):
         self.workspace.view_manager.handle_center_tab_click(index)
+
+    @Slot()
+    def on_experiment_complete(self):
+        QMessageBox.information(self, "Experiment Complete", "No more challenges remain!")
 
     #
     # Actions

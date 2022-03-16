@@ -237,8 +237,24 @@ class RandomizedExperiment(QtCore.QObject):
         else:
             return None
 
+    @property
+    def next_study(self) -> Optional[Study]:
+        if 0 <= self._curr_study_idx + 1 < len(self._studies):
+            return self._studies[self._curr_study_idx + 1]
+        else:
+            return None
+
     def increment_challenge(self):
-        self.curr_study.curr_chall_idx += 1
+        if self.curr_study.is_complete():
+            self._curr_study_idx += 1
+
+        if self.is_complete():
+            _l.error("This should never happen!")
+        else:
+            self.curr_study.curr_chall_idx += 1
+            self.workspace.update_usable_views(self.curr_study.type_, self.curr_study.group)
+            self._update_log_file(self.curr_study.curr_chall_idx)
+
 
     @property
     def next_chall(self) -> Optional[str]:
@@ -248,30 +264,19 @@ class RandomizedExperiment(QtCore.QObject):
 
         if not self.studies:
             self._load_challenges()
-            if self.workspace:
-                self.workspace.update_usable_views(self.curr_study.type_, self.curr_study.group)
-        elif self.is_complete():
-            return None
 
-        if self.curr_study.is_complete():
-            # Need to increment to next study
-            self._curr_study_idx += 1
-            if self.is_complete():
-                # No more studies remain, experiment is done!
-                if os.path.exists(self.PLOG_LOCATION):
-                    os.unlink(self.PLOG_LOCATION)
-
-                self.experiment_completed.emit()
-                return None
-            else:
-                self.workspace.update_usable_views(self.curr_study.type_, self.curr_study.group)
-                next_chall = self.curr_study.next_chall
-                self._update_log_file(self.curr_study.curr_chall_idx)
-                return next_chall
+        if not self.curr_study.is_complete():
+            chall_path = self.curr_study.next_chall
+        elif self.next_study:
+            chall_path = self.next_study.next_chall
         else:
-            next_chall = self.curr_study.next_chall
-            self._update_log_file(self.curr_study.curr_chall_idx)
-            return next_chall
+            # No more studies remain, experiment is done!
+            if os.path.exists(self.PLOG_LOCATION):
+                os.unlink(self.PLOG_LOCATION)
+            self.experiment_completed.emit()
+            chall_path = None
+
+        return chall_path
 
     @property
     def trace_file(self) -> Optional[str]:
